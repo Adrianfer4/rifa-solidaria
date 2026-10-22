@@ -261,6 +261,28 @@
         letter-spacing: 2px;
         font-size: 0.9rem;
       }
+      .payment-summary {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin: 0 auto 18px;
+        font-family: "Poppins", sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .payment-summary span {
+        padding: 6px 12px;
+        border-radius: 999px;
+      }
+      .paid-count {
+        color: #18794e;
+        background: #e3f7ed;
+      }
+      .pending-count {
+        color: #9a6700;
+        background: #fff4cc;
+      }
       .grid {
         display: grid !important;
         grid-template-columns: repeat(10, 1fr);
@@ -316,7 +338,32 @@
       .cell.occupied {
         background-color: var(--accent-soft);
         border-color: var(--accent-strong);
-        cursor: not-allowed;
+        cursor: pointer;
+      }
+      .cell.occupied.paid {
+        background-color: #e4f8ee;
+        border-color: #9ddbb9;
+      }
+      .cell.occupied:hover {
+        filter: brightness(0.97);
+        border-color: #e58d96;
+      }
+      .cell.occupied.pending::before,
+      .cell.occupied.paid::before {
+        position: absolute;
+        top: 4px;
+        left: 5px;
+        font-size: 0.55rem;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+      }
+      .cell.occupied.pending::before {
+        content: "DEBE";
+        color: #9a6700;
+      }
+      .cell.occupied.paid::before {
+        content: "PAGÓ";
+        color: #18794e;
       }
       .cell.occupied .num {
         color: var(--accent-red);
@@ -387,6 +434,23 @@
         margin-bottom: 15px;
         box-sizing: border-box;
       }
+      .payment-choice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        text-align: left;
+        color: #555;
+        font-size: 0.9rem;
+      }
+      .payment-choice select {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        font: inherit;
+      }
       .modal-buttons {
         display: flex;
         gap: 10px;
@@ -406,6 +470,23 @@
       .btn-confirm {
         background: var(--accent-red);
         color: white;
+      }
+      .payment-actions {
+        display: grid;
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .btn-paid {
+        background: #2e9d68;
+        color: white;
+      }
+      .btn-pending {
+        background: #f2c94c;
+        color: #5f4b00;
+      }
+      .btn-delete {
+        background: #f1d9dc;
+        color: #a42635;
       }
 
       @media (max-width: 768px) {
@@ -491,6 +572,7 @@
       </div>
 
       <h2 class="grid-title">Elige tu número de la suerte</h2>
+      <div class="payment-summary" id="paymentSummary" aria-live="polite"></div>
       <div id="grid" class="grid"></div>
 
       <!-- <button class="reset-btn" onclick="resetData()">🔄 Reiniciar cuadrícula</button> -->
@@ -510,12 +592,40 @@
           placeholder="Tu nombre completo"
           autocomplete="off"
         />
+        <label class="payment-choice" for="paymentStatus">
+          Estado:
+          <select id="paymentStatus">
+            <option value="pending">No pagó</option>
+            <option value="paid">Pagó</option>
+          </select>
+        </label>
         <div class="modal-buttons">
           <button class="btn btn-cancel" onclick="closeModal()">
             Cancelar
           </button>
           <button class="btn btn-confirm" onclick="confirmReservation()">
             Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="paymentActionOverlay">
+      <div class="modal-box">
+        <h3>Administrar reserva</h3>
+        <p id="paymentActionText"></p>
+        <div class="payment-actions">
+          <button class="btn btn-paid" type="button" id="markPaidButton">
+            Marcar como pagado
+          </button>
+          <button class="btn btn-pending" type="button" id="markPendingButton">
+            Marcar como no pagó
+          </button>
+          <button class="btn btn-delete" type="button" id="deleteReservationButton">
+            Quitar reserva
+          </button>
+          <button class="btn btn-cancel" type="button" id="closePaymentActionButton">
+            Cancelar
           </button>
         </div>
       </div>
@@ -554,21 +664,71 @@
 
       const totalNumbers = 100;
       const gridContainer = document.getElementById("grid");
+      const paymentSummary = document.getElementById("paymentSummary");
 
       const modalOverlay = document.getElementById("modalOverlay");
       const modalNum = document.getElementById("modalNum");
       const userNameInput = document.getElementById("userNameInput");
+      const paymentStatus = document.getElementById("paymentStatus");
+      const paymentActionOverlay = document.getElementById("paymentActionOverlay");
+      const paymentActionText = document.getElementById("paymentActionText");
+      const markPaidButton = document.getElementById("markPaidButton");
+      const markPendingButton = document.getElementById("markPendingButton");
+      const deleteReservationButton = document.getElementById("deleteReservationButton");
+      const closePaymentActionButton = document.getElementById("closePaymentActionButton");
       let currentSelectedNum = null;
+      let currentActionNum = null;
+
+      function normalizeReservation(value) {
+        if (typeof value === "string") {
+          return { name: value, status: "pending" };
+        }
+        if (value && typeof value === "object") {
+          return {
+            name: String(value.name || value.nombre || "Sin nombre"),
+            status:
+              value.status === "paid" || value.status === "pagado"
+                ? "paid"
+                : "pending",
+          };
+        }
+        return null;
+      }
+
+      function updatePaymentSummary() {
+        let paid = 0;
+        let pending = 0;
+        Object.values(gridData).forEach((value) => {
+          const reservation = normalizeReservation(value);
+          if (!reservation) return;
+          if (reservation.status === "paid") {
+            paid += 1;
+          } else {
+            pending += 1;
+          }
+        });
+        paymentSummary.innerHTML = `
+          <span class="paid-count">Pagados: ${paid}</span>
+          <span class="pending-count">Pendientes: ${pending}</span>
+        `;
+      }
 
       function renderGrid() {
         gridContainer.innerHTML = "";
+        updatePaymentSummary();
         for (let i = 1; i <= totalNumbers; i++) {
           const cell = document.createElement("div");
           cell.classList.add("cell");
 
           if (gridData[i]) {
+            const reservation = normalizeReservation(gridData[i]);
+            if (!reservation) continue;
             cell.classList.add("occupied");
-            cell.innerHTML = `<div class="num">${i}</div><div class="name">${gridData[i]}</div>`;
+            cell.classList.add(reservation.status);
+            cell.title = `${reservation.name} - ${
+              reservation.status === "paid" ? "Pagado" : "Pendiente"
+            }`;
+            cell.innerHTML = `<div class="num">${i}</div><div class="name">${reservation.name}</div>`;
           } else {
             cell.innerHTML = `<div class="num">${i}</div>`;
           }
@@ -580,20 +740,15 @@
 
       function handleCellClick(num) {
         if (gridData[num]) {
-          if (
-            confirm(
-              `El número ${num} ya está reservado por: ${gridData[num]}. ¿Quieres liberarlo?`,
-            )
-          ) {
-            remove(ref(database, `reservations/${num}`)).catch((error) => {
-              console.error("No se pudo liberar el número:", error);
-              alert("No se pudo liberar el número. Intenta de nuevo.");
-            });
-          }
+          const reservation = normalizeReservation(gridData[num]);
+          currentActionNum = num;
+          paymentActionText.textContent = `Número ${num}: ${reservation.name}`;
+          paymentActionOverlay.classList.add("active");
         } else {
           currentSelectedNum = num;
           modalNum.textContent = num;
           userNameInput.value = "";
+          paymentStatus.value = "pending";
           modalOverlay.classList.add("active");
           userNameInput.focus();
         }
@@ -604,6 +759,46 @@
         currentSelectedNum = null;
       }
 
+      function closePaymentActionModal() {
+        paymentActionOverlay.classList.remove("active");
+        currentActionNum = null;
+      }
+
+      function updatePaymentStatus(status) {
+        if (currentActionNum === null) return;
+        runTransaction(
+          ref(database, `reservations/${currentActionNum}`),
+          (currentValue) => {
+            const reservation = normalizeReservation(currentValue);
+            if (!reservation) return;
+            return { name: reservation.name, status };
+          },
+        )
+          .then(() => closePaymentActionModal())
+          .catch((error) => {
+            console.error("No se pudo actualizar el pago:", error);
+            alert(getFirebaseWriteError(error, "actualizar el estado de pago"));
+          });
+      }
+
+      function deleteCurrentReservation() {
+        if (currentActionNum === null) return;
+        if (!confirm("¿Quitar completamente esta reserva?")) return;
+        remove(ref(database, `reservations/${currentActionNum}`))
+          .then(() => closePaymentActionModal())
+          .catch((error) => {
+            console.error("No se pudo quitar la reserva:", error);
+            alert(getFirebaseWriteError(error, "quitar la reserva"));
+          });
+      }
+
+      function getFirebaseWriteError(error, action) {
+        if (error?.code === "PERMISSION_DENIED") {
+          return `Firebase no permite ${action}. Revisa las reglas de Realtime Database.`;
+        }
+        return `No se pudo ${action}. Verifica la conexión e intenta de nuevo.`;
+      }
+
       async function confirmReservation() {
         const name = userNameInput.value.trim();
         if (!name || currentSelectedNum === null) {
@@ -612,12 +807,15 @@
         }
 
         const number = currentSelectedNum;
+        const status = paymentStatus.value;
         const reservationRef = ref(database, `reservations/${number}`);
         try {
           const result = await runTransaction(
             reservationRef,
             (currentValue) => {
-              return currentValue === null ? name : undefined;
+              return currentValue === null
+                ? { name, status }
+                : undefined;
             },
           );
 
@@ -638,6 +836,13 @@
       modalOverlay.addEventListener("click", (e) => {
         if (e.target === modalOverlay) closeModal();
       });
+      paymentActionOverlay.addEventListener("click", (e) => {
+        if (e.target === paymentActionOverlay) closePaymentActionModal();
+      });
+      markPaidButton.addEventListener("click", () => updatePaymentStatus("paid"));
+      markPendingButton.addEventListener("click", () => updatePaymentStatus("pending"));
+      deleteReservationButton.addEventListener("click", deleteCurrentReservation);
+      closePaymentActionButton.addEventListener("click", closePaymentActionModal);
 
       userNameInput.addEventListener("keypress", (e) => {
         if (e.key === "Enter") confirmReservation();
