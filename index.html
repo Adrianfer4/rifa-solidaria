@@ -490,14 +490,35 @@
     </div>
 
     <!-- El script al final del body garantiza que el HTML ya esté cargado -->
-    <script>
-      // Datos en memoria (si el navegador bloquea localStorage, no rompe nada)
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+      import {
+        getAuth,
+        signInAnonymously,
+      } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+      import {
+        getDatabase,
+        onValue,
+        ref,
+        remove,
+        runTransaction,
+      } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-database.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyAqTkimOeTLAfFtrG7Z8bygb9ZbPD9Kvc0",
+        authDomain: "rifa-solidaria-699c1.firebaseapp.com",
+        databaseURL: "https://rifa-solidaria-699c1-default-rtdb.firebaseio.com",
+        projectId: "rifa-solidaria-699c1",
+        storageBucket: "rifa-solidaria-699c1.firebasestorage.app",
+        messagingSenderId: "1008991277163",
+        appId: "1:1008991277163:web:4f53542ba9e571ba99e12e",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const database = getDatabase(app);
+      const reservationsRef = ref(database, "reservations");
       let gridData = {};
-      try {
-        gridData = JSON.parse(localStorage.getItem("rifaSolidariaData")) || {};
-      } catch (e) {
-        gridData = {};
-      }
 
       const totalNumbers = 100;
       const gridContainer = document.getElementById("grid");
@@ -506,12 +527,6 @@
       const modalNum = document.getElementById("modalNum");
       const userNameInput = document.getElementById("userNameInput");
       let currentSelectedNum = null;
-
-      function saveData() {
-        try {
-          localStorage.setItem("rifaSolidariaData", JSON.stringify(gridData));
-        } catch (e) {}
-      }
 
       function renderGrid() {
         gridContainer.innerHTML = "";
@@ -538,9 +553,10 @@
               `El número ${num} ya está reservado por: ${gridData[num]}. ¿Quieres liberarlo?`,
             )
           ) {
-            delete gridData[num];
-            saveData();
-            renderGrid();
+            remove(ref(database, `reservations/${num}`)).catch((error) => {
+              console.error("No se pudo liberar el número:", error);
+              alert("No se pudo liberar el número. Intenta de nuevo.");
+            });
           }
         } else {
           currentSelectedNum = num;
@@ -556,16 +572,32 @@
         currentSelectedNum = null;
       }
 
-      function confirmReservation() {
+      async function confirmReservation() {
         const name = userNameInput.value.trim();
-        if (!name) {
+        if (!name || currentSelectedNum === null) {
           alert("Por favor, escribe un nombre.");
           return;
         }
-        gridData[currentSelectedNum] = name;
-        saveData();
-        closeModal();
-        renderGrid();
+
+        const number = currentSelectedNum;
+        const reservationRef = ref(database, `reservations/${number}`);
+        try {
+          const result = await runTransaction(reservationRef, (currentValue) => {
+            return currentValue === null ? name : undefined;
+          });
+
+          if (!result.committed) {
+            alert("Ese número acaba de ser reservado por otra persona.");
+            return;
+          }
+
+          closeModal();
+        } catch (error) {
+          console.error("No se pudo reservar el número:", error);
+          alert(
+            "No se pudo guardar la reserva. Verifica la conexión y la configuración de Firebase.",
+          );
+        }
       }
 
       modalOverlay.addEventListener("click", (e) => {
@@ -580,14 +612,39 @@
         if (
           confirm("¿Seguro que quieres borrar todos los números reservados?")
         ) {
-          gridData = {};
-          saveData();
-          renderGrid();
+          remove(reservationsRef).catch((error) => {
+            console.error("No se pudieron borrar las reservas:", error);
+            alert("No se pudieron borrar las reservas. Intenta de nuevo.");
+          });
         }
       }
 
-      // Ejecutar al instante
       renderGrid();
+      window.closeModal = closeModal;
+      window.confirmReservation = confirmReservation;
+
+      signInAnonymously(auth)
+        .then(() => {
+          onValue(
+            reservationsRef,
+            (snapshot) => {
+              gridData = snapshot.val() || {};
+              renderGrid();
+            },
+            (error) => {
+              console.error("No se pudieron leer las reservas:", error);
+              alert(
+                "No se pudieron cargar las reservas. Revisa las reglas de Realtime Database.",
+              );
+            },
+          );
+        })
+        .catch((error) => {
+          console.error("No se pudo iniciar la sesión anónima:", error);
+          alert(
+            "No se pudo conectar con Firebase. Activa el acceso anónimo en Authentication.",
+          );
+        });
     </script>
   </body>
 </html>
