@@ -30,10 +30,26 @@
       body {
         font-family: "Inter", sans-serif;
         background:
-          radial-gradient(circle at 8% 12%, rgba(255, 198, 203, 0.26) 0 9%, transparent 28%),
-          radial-gradient(circle at 92% 18%, rgba(187, 231, 220, 0.3) 0 8%, transparent 27%),
-          radial-gradient(circle at 12% 88%, rgba(255, 221, 181, 0.24) 0 7%, transparent 25%),
-          radial-gradient(circle at 88% 90%, rgba(207, 213, 255, 0.24) 0 9%, transparent 28%),
+          radial-gradient(
+            circle at 8% 12%,
+            rgba(255, 198, 203, 0.26) 0 9%,
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at 92% 18%,
+            rgba(187, 231, 220, 0.3) 0 8%,
+            transparent 27%
+          ),
+          radial-gradient(
+            circle at 12% 88%,
+            rgba(255, 221, 181, 0.24) 0 7%,
+            transparent 25%
+          ),
+          radial-gradient(
+            circle at 88% 90%,
+            rgba(207, 213, 255, 0.24) 0 9%,
+            transparent 28%
+          ),
           linear-gradient(135deg, #fffafa 0%, #f7f8fc 48%, #f0faf7 100%);
         background-attachment: fixed;
         display: flex;
@@ -73,8 +89,16 @@
         position: relative;
         overflow: hidden;
         background:
-          radial-gradient(circle at 88% 14%, rgba(255, 255, 255, 0.72) 0 8%, transparent 9%),
-          radial-gradient(circle at 8% 88%, rgba(255, 255, 255, 0.5) 0 6%, transparent 7%),
+          radial-gradient(
+            circle at 88% 14%,
+            rgba(255, 255, 255, 0.72) 0 8%,
+            transparent 9%
+          ),
+          radial-gradient(
+            circle at 8% 88%,
+            rgba(255, 255, 255, 0.5) 0 6%,
+            transparent 7%
+          ),
           linear-gradient(145deg, #eefaff 0%, #dff3fb 52%, #eaf7ff 100%);
         border: 1px solid #c7e7f3;
         border-radius: 12px;
@@ -101,8 +125,16 @@
         position: relative;
         overflow: hidden;
         background:
-          radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.8) 0 7%, transparent 8%),
-          radial-gradient(circle at 88% 82%, rgba(255, 255, 255, 0.55) 0 10%, transparent 11%),
+          radial-gradient(
+            circle at 12% 18%,
+            rgba(255, 255, 255, 0.8) 0 7%,
+            transparent 8%
+          ),
+          radial-gradient(
+            circle at 88% 82%,
+            rgba(255, 255, 255, 0.55) 0 10%,
+            transparent 11%
+          ),
           linear-gradient(135deg, #fff0f1 0%, #ffe1d4 45%, #dff5ef 100%);
         border-radius: 12px;
         padding: 15px;
@@ -424,7 +456,7 @@
       <div class="header">
         <div class="header-section premium-box">
           <div class="premium-title">SE RIFA</div>
-          <div class="premium-item">Una pierna <br />de chancho</div>
+          <div class="premium-item">Un brazo <br />de chancho</div>
           <div class="pig-icon">🐷</div>
         </div>
 
@@ -582,9 +614,12 @@
         const number = currentSelectedNum;
         const reservationRef = ref(database, `reservations/${number}`);
         try {
-          const result = await runTransaction(reservationRef, (currentValue) => {
-            return currentValue === null ? name : undefined;
-          });
+          const result = await runTransaction(
+            reservationRef,
+            (currentValue) => {
+              return currentValue === null ? name : undefined;
+            },
+          );
 
           if (!result.committed) {
             alert("Ese número acaba de ser reservado por otra persona.");
