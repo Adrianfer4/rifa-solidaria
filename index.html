@@ -64,10 +64,47 @@
       }
 
       .premium-box {
-        background: #f8f9fa;
+        position: relative;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 12% 18%, rgba(255, 255, 255, 0.8) 0 7%, transparent 8%),
+          radial-gradient(circle at 88% 82%, rgba(255, 255, 255, 0.55) 0 10%, transparent 11%),
+          linear-gradient(135deg, #fff0f1 0%, #ffe1d4 45%, #dff5ef 100%);
         border-radius: 12px;
         padding: 15px;
-        border: 1px solid #e9ecef;
+        border: 1px solid #f3c8c2;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
+      }
+      .premium-box::before,
+      .premium-box::after {
+        position: absolute;
+        pointer-events: none;
+      }
+      .premium-box::before {
+        content: "";
+        width: 110px;
+        height: 110px;
+        top: -55px;
+        right: -25px;
+        border: 14px solid rgba(255, 255, 255, 0.38);
+        border-radius: 50%;
+        box-shadow:
+          -95px 125px 0 -35px rgba(230, 57, 70, 0.16),
+          -115px 125px 0 -49px rgba(255, 255, 255, 0.55);
+      }
+      .premium-box::after {
+        content: "♥  JUNTOS AYUDAMOS  ♥";
+        right: 12px;
+        bottom: 7px;
+        color: rgba(181, 74, 79, 0.72);
+        font-family: "Poppins", sans-serif;
+        font-size: 0.48rem;
+        font-weight: 800;
+        letter-spacing: 1px;
+      }
+      .premium-box > * {
+        position: relative;
+        z-index: 1;
       }
       .premium-title {
         background: #000;
@@ -353,7 +390,7 @@
       <div class="header">
         <div class="header-section premium-box">
           <div class="premium-title">SE RIFA</div>
-          <div class="premium-item">Una cabeza<br />de chancho</div>
+          <div class="premium-item">Una pierna de chancho<br />de chancho</div>
           <div class="pig-icon">🐷</div>
         </div>
 
