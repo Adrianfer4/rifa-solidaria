@@ -76,7 +76,7 @@
       .header {
         position: relative;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
         gap: 18px;
         margin-bottom: 20px;
         padding: 18px 22px;
@@ -189,10 +189,11 @@
 
       .header-prize {
         align-self: stretch;
+        width: 100%;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         justify-content: center;
-        min-width: 260px;
         padding: 12px 14px;
         border: 1px solid rgba(255, 255, 255, 0.22);
         border-radius: 12px;
@@ -233,11 +234,12 @@
         gap: 8px;
         margin-top: 7px;
         width: 100%;
+        min-width: 0;
       }
 
       .header-image-card {
         flex: 1;
-        aspect-ratio: 1 / 1;
+        aspect-ratio: 4 / 3;
         min-width: 0;
         display: flex;
         flex-direction: column;
@@ -600,6 +602,7 @@
           width: 100%;
         }
         .header-image-card {
+          aspect-ratio: 1 / 1;
           max-height: 150px;
         }
         .header::after {
