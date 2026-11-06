@@ -940,7 +940,7 @@
           const result = await runTransaction(
             reservationRef,
             (currentValue) => {
-              return currentValue === null
+              return currentValue == null
                 ? { name, status }
                 : undefined;
             },
@@ -1016,7 +1016,9 @@
       window.closeModal = closeModal;
       window.confirmReservation = confirmReservation;
       copyNamesButton.addEventListener("click", copySoldNames);
-      resetButton.addEventListener("click", resetData);
+      if (resetButton) {
+        resetButton.addEventListener("click", resetData);
+      }
 
       signInAnonymously(auth)
         .then(() => {
